@@ -3,9 +3,11 @@
         "outDir": "lib",
         "declaration": true,
         "declarationDir": "types",
+        "module": "CommonJS",
+        "allowJs": true,
         "strict": true,
-        "allowSyntheticDefaultImports": true,
-        "allowJs": true
+        "noImplicitAny": true
     },
-    "include": ["src/**/*.ts"]
+    "include": ["src/**/*.ts", "src/**/*.js"],
+    "exclude": ["node_modules"]
 }

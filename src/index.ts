@@ -1,8 +1,8 @@
-import child_process from 'child_process';
-import util from 'util';
-import path from 'path';
-import fs from 'fs';
-import rimraf from 'rimraf';
+import * as child_process from 'child_process';
+import * as util from 'util';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as rimraf from 'rimraf';
 import { loader } from 'webpack';
 
 const execAsync = util.promisify(child_process.exec);
@@ -59,7 +59,7 @@ async function compileGo(goFilePath: string, rootContext: string) {
         const opts = {
             env: {
                 ...goEnvs,
-                GOCACHE: outFilePath,
+                GOCACHE: goCachePath,
             },
         };
         await execFileAsync(bin, args, opts);
