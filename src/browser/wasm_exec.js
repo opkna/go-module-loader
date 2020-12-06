@@ -12,7 +12,10 @@
     // Environments considered:
     // - Browsers
 
-    if (typeof window === 'undefined' || typeof window.document === 'undefined') {
+    if (
+        typeof window === 'undefined' ||
+        typeof window.document === 'undefined'
+    ) {
         throw new Error('cannot export Go (expects a browser environment)');
     }
 
@@ -168,7 +171,11 @@
             const loadSlice = (addr) => {
                 const array = getInt64(addr + 0);
                 const len = getInt64(addr + 8);
-                return new Uint8Array(this._inst.exports.mem.buffer, array, len);
+                return new Uint8Array(
+                    this._inst.exports.mem.buffer,
+                    array,
+                    len
+                );
             };
 
             const loadSliceOfValues = (addr) => {
@@ -184,7 +191,9 @@
             const loadString = (addr) => {
                 const saddr = getInt64(addr + 0);
                 const len = getInt64(addr + 8);
-                return decoder.decode(new DataView(this._inst.exports.mem.buffer, saddr, len));
+                return decoder.decode(
+                    new DataView(this._inst.exports.mem.buffer, saddr, len)
+                );
             };
 
             const timeOrigin = Date.now() - performance.now();
@@ -210,12 +219,18 @@
                         const fd = getInt64(sp + 8);
                         const p = getInt64(sp + 16);
                         const n = mem().getInt32(sp + 24, true);
-                        fs.writeSync(fd, new Uint8Array(this._inst.exports.mem.buffer, p, n));
+                        fs.writeSync(
+                            fd,
+                            new Uint8Array(this._inst.exports.mem.buffer, p, n)
+                        );
                     },
 
                     // func nanotime() int64
                     'runtime.nanotime': (sp) => {
-                        setInt64(sp + 8, (timeOrigin + performance.now()) * 1000000);
+                        setInt64(
+                            sp + 8,
+                            (timeOrigin + performance.now()) * 1000000
+                        );
                     },
 
                     // func walltime() (sec int64, nsec int32)
@@ -237,7 +252,9 @@
                                     while (this._scheduledTimeouts.has(id)) {
                                         // for some reason Go failed to register the timeout event, log and try again
                                         // (temporary workaround for https://github.com/golang/go/issues/28975)
-                                        console.warn('scheduleTimeoutEvent: missed timeout event');
+                                        console.warn(
+                                            'scheduleTimeoutEvent: missed timeout event'
+                                        );
                                         this._resume();
                                     }
                                 },
@@ -266,24 +283,38 @@
 
                     // func valueGet(v ref, p string) ref
                     'syscall/js.valueGet': (sp) => {
-                        const result = Reflect.get(loadValue(sp + 8), loadString(sp + 16));
+                        const result = Reflect.get(
+                            loadValue(sp + 8),
+                            loadString(sp + 16)
+                        );
                         sp = this._inst.exports.getsp(); // see comment above
                         storeValue(sp + 32, result);
                     },
 
                     // func valueSet(v ref, p string, x ref)
                     'syscall/js.valueSet': (sp) => {
-                        Reflect.set(loadValue(sp + 8), loadString(sp + 16), loadValue(sp + 32));
+                        Reflect.set(
+                            loadValue(sp + 8),
+                            loadString(sp + 16),
+                            loadValue(sp + 32)
+                        );
                     },
 
                     // func valueIndex(v ref, i int) ref
                     'syscall/js.valueIndex': (sp) => {
-                        storeValue(sp + 24, Reflect.get(loadValue(sp + 8), getInt64(sp + 16)));
+                        storeValue(
+                            sp + 24,
+                            Reflect.get(loadValue(sp + 8), getInt64(sp + 16))
+                        );
                     },
 
                     // valueSetIndex(v ref, i int, x ref)
                     'syscall/js.valueSetIndex': (sp) => {
-                        Reflect.set(loadValue(sp + 8), getInt64(sp + 16), loadValue(sp + 24));
+                        Reflect.set(
+                            loadValue(sp + 8),
+                            getInt64(sp + 16),
+                            loadValue(sp + 24)
+                        );
                     },
 
                     // func valueCall(v ref, m string, args []ref) (ref, bool)
@@ -352,14 +383,22 @@
 
                     // func valueInstanceOf(v ref, t ref) bool
                     'syscall/js.valueInstanceOf': (sp) => {
-                        mem().setUint8(sp + 24, loadValue(sp + 8) instanceof loadValue(sp + 16));
+                        mem().setUint8(
+                            sp + 24,
+                            loadValue(sp + 8) instanceof loadValue(sp + 16)
+                        );
                     },
 
                     // func copyBytesToGo(dst []byte, src ref) (int, bool)
                     'syscall/js.copyBytesToGo': (sp) => {
                         const dst = loadSlice(sp + 8);
                         const src = loadValue(sp + 32);
-                        if (!(src instanceof Uint8Array || src instanceof Uint8ClampedArray)) {
+                        if (
+                            !(
+                                src instanceof Uint8Array ||
+                                src instanceof Uint8ClampedArray
+                            )
+                        ) {
                             mem().setUint8(sp + 48, 0);
                             return;
                         }
@@ -373,7 +412,12 @@
                     'syscall/js.copyBytesToJS': (sp) => {
                         const dst = loadValue(sp + 8);
                         const src = loadSlice(sp + 16);
-                        if (!(dst instanceof Uint8Array || dst instanceof Uint8ClampedArray)) {
+                        if (
+                            !(
+                                dst instanceof Uint8Array ||
+                                dst instanceof Uint8ClampedArray
+                            )
+                        ) {
                             mem().setUint8(sp + 48, 0);
                             return;
                         }

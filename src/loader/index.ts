@@ -1,22 +1,26 @@
 import * as child_process from 'child_process';
-import * as util from 'util';
 import * as path from 'path';
+import * as util from 'util';
 import * as fs from 'fs';
-import * as rimraf from 'rimraf';
+import rimraf from 'rimraf';
 import { loader } from 'webpack';
 
-const execAsync = util.promisify(child_process.exec);
-const execFileAsync = util.promisify(child_process.execFile);
-const readFileAsync = util.promisify(fs.readFile);
-const unlinkAsync = util.promisify(fs.unlink);
+let execAsync = util.promisify(child_process.exec);
+let execFileAsync = util.promisify(child_process.execFile);
+let readFileAsync = util.promisify(fs.readFile);
+let unlinkAsync = util.promisify(fs.unlink);
 
 const goBinPath = (goRoot: string) => `${goRoot}/bin/go`;
 
-const createBridgeCode = async (filename: string) => {
-    return (await readFileAsync(path.resolve(__dirname, 'gobridge.js')))
+async function createBridgeCode(filename: string) {
+    return (
+        await readFileAsync(
+            path.resolve(__dirname, '..', 'browser', 'gobridge.js')
+        )
+    )
         .toString()
         .replace(/\$WASM_FILENAME/, filename);
-};
+}
 
 async function getGoEnvs() {
     let GOROOT = process.env.GOROOT;
@@ -28,25 +32,29 @@ async function getGoEnvs() {
         } catch (err) {
             // Unable to find go binary, panic!
             throw Error(
-                "Can't find Go! (GOROOT is not set, and go binary is not in PATH)"
+                `Can't find Go! (GOROOT is not set, and go binary is not in PATH)`
             );
         }
     }
 
-    // Get GOPATH with 'go env'
-    const bin = goBinPath(GOROOT);
-    const { stdout } = await execFileAsync(bin, ['env', 'GOPATH']);
+    let GOPATH = process.env.GOPATH;
+    if (!GOPATH) {
+        // Get GOPATH with 'go env'
+        const bin = goBinPath(GOROOT);
+        const { stdout } = await execFileAsync(bin, ['env', 'GOPATH']);
+        GOPATH = stdout.trim();
+    }
 
     return {
-        GOROOT: GOROOT,
-        GOPATH: stdout.trim(),
+        GOROOT,
+        GOPATH,
         GOOS: 'js',
         GOARCH: 'wasm',
     };
 }
 
 async function compileGo(goFilePath: string, rootContext: string) {
-    const outFilePath = `${goFilePath}.wasm`;
+    const outFilePath = goFilePath.replace(/.go$/, '.wasm');
     const goCachePath = path.resolve(rootContext, '.gocache');
 
     try {
@@ -76,7 +84,7 @@ async function compileGo(goFilePath: string, rootContext: string) {
 async function getJsModuleCode(emittedWasmPath: string) {
     // Get the wasm_exec.js glue code that Go provides
     const glueCode = await readFileAsync(
-        path.resolve(__dirname, 'wasm_exec.js')
+        path.resolve(__dirname, '..', 'browser', 'wasm_exec.js')
     );
 
     // Create and return resulting code
@@ -99,9 +107,8 @@ export default async function (this: loader.LoaderContext) {
             path.basename(this.resourcePath, '.go') + '.wasm';
         this.emitFile(emittedWasmPath, wasmFile, null);
 
-        // Get module code
+        // Get and return module code
         const moduleCode = await getJsModuleCode(emittedWasmPath);
-
         callback(null, moduleCode);
         return;
     } catch (err) {

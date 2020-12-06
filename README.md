@@ -52,8 +52,8 @@ func main() {
 }
 
 func add(args []interface{}) (interface{}, error) {
-	a := args[0].(int)
-    b := args[1].(int)
+	a := args[0].(float64)
+    b := args[1].(float64)
 
 	return a + b, nil
 }
@@ -64,8 +64,8 @@ func add(args []interface{}) (interface{}, error) {
 ```js
 import mymath from './mymath.go';
 
-mymath.add(1, 2).then((sum) => {
-    console.log(sum);
+mymath.get().then((inst) => {
+    console.log(inst.add(1, 2));
 });
 ```
 
