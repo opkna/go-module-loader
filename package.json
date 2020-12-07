@@ -69,5 +69,11 @@
     },
     "publishConfig": {
         "registry": "https://registry.npmjs.org"
+    },
+    "release-it": {
+        "git": {
+            "requireBranch": "master",
+            "push": true
+        }
     }
 }
