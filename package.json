@@ -15,6 +15,7 @@
         "prebuild": "rimraf types lib",
         "build": "babel src --out-dir lib --extensions '.tsx,.ts,.js'",
         "postbuild": "tsc -p . --emitDeclarationOnly",
+        "prerelease": "yarn test && yarn build",
         "release": "release-it --dry-run"
     },
     "dependencies": {
@@ -59,13 +60,5 @@
         "presets": [
             "@babel/preset-typescript"
         ]
-    },
-    "release-it": {
-        "hooks": {
-            "before:init": [
-                "yarn test",
-                "yarn build"
-            ]
-        }
     }
 }
