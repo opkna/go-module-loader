@@ -19,16 +19,27 @@ type WasmRunOutput = {
     error?: any;
 };
 
+interface InstantiateOptions {
+    restart?: boolean;
+}
+
+const defaultOpts: Required<InstantiateOptions> = {
+    restart: true,
+};
+
 function generateId() {
     return (1 + Math.random() * 0x1000000).toString(36);
 }
 
-class WasmInstance {
+export class WasmInstance {
     private _wasmModule: WebAssembly.Module;
     private _ready: boolean = false;
     private _uniqId: string;
 
-    constructor(module: WebAssembly.Module) {
+    constructor(
+        module: WebAssembly.Module,
+        options: Required<InstantiateOptions>
+    ) {
         this._wasmModule = module;
         this._uniqId = generateId();
         window.__wasmbridge[this._uniqId] = {};
@@ -69,7 +80,7 @@ class WasmInstance {
     }
 }
 
-class WasmModule {
+export class WasmModule {
     private _filePath: string = '$WASM_FILENAME'; // Will be replaced by the loader
     private _wasmModule?: WebAssembly.Module = undefined;
 
@@ -103,20 +114,25 @@ class WasmModule {
 
                 return (...args: any) => {
                     const output: WasmRunOutput = {};
-                    const res = func.apply(output, args);
+                    func.apply(output, args);
 
                     if (output.error) throw output.error;
-                    else return output.result ?? res;
+                    else return output.result;
                 };
             },
         });
     }
 
-    async get<T>() {
+    async instantiate<T>(options?: InstantiateOptions) {
+        const opts = {
+            ...defaultOpts,
+            ...(options ?? {}),
+        } as Required<InstantiateOptions>;
+
         while (!this._wasmModule) {
             await new Promise(requestAnimationFrame);
         }
-        const inst = new WasmInstance(this._wasmModule);
+        const inst = new WasmInstance(this._wasmModule, opts);
         // @ts-ignore
         await inst._init();
 
