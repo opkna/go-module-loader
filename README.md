@@ -42,20 +42,20 @@ module.exports = {
 package main
 
 import (
-	"github.com/opkna/wasmbridge"
+    "github.com/opkna/wasmbridge"
 )
 
 
 func main() {
-	wasmbridge.ExportFunc("add", add)
-	select {}
+    wasmbridge.ExportFunc("add", add, false)
+    select {}
 }
 
 func add(args []interface{}) (interface{}, error) {
-	a := args[0].(float64)
+    a := args[0].(float64)
     b := args[1].(float64)
 
-	return a + b, nil
+    return a + b, nil
 }
 ```
 
@@ -64,7 +64,7 @@ func add(args []interface{}) (interface{}, error) {
 ```js
 import mymath from './mymath.go';
 
-mymath.get().then((inst) => {
+mymath.instantiate().then((inst) => {
     console.log(inst.add(1, 2));
 });
 ```
