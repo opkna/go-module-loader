@@ -126,7 +126,7 @@ export class WasmModule {
     async instantiate<T>(options?: InstantiateOptions) {
         const opts = {
             ...defaultOpts,
-            ...(options ?? {}),
+            ...(options || {}),
         } as Required<InstantiateOptions>;
 
         while (!this._wasmModule) {
