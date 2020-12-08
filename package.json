@@ -17,7 +17,7 @@
     "bugs": "https://github.com/opkna/go-module-loader/issues",
     "scripts": {
         "pretest": "babel src --out-dir lib --extensions '.tsx,.ts,.js' && webpack -c test/test_pkg/webpack.config.js --stats minimal",
-        "test": "jest",
+        "test": "jest --detectOpenHandles",
         "prebuild": "rimraf types lib",
         "build": "babel src --out-dir lib --extensions '.tsx,.ts,.js'",
         "postbuild": "tsc -p . --emitDeclarationOnly",
@@ -41,11 +41,12 @@
         "@types/rimraf": "^3.0.0",
         "@types/serve-static": "^1.13.8",
         "@types/webpack": "^4.41.25",
+        "babel-preset-minify": "^0.5.1",
         "express": "^4.17.1",
         "html-webpack-plugin": "^4.5.0",
         "jest": "^26.6.3",
         "jest-puppeteer": "^4.4.0",
-        "puppeteer": "^5.5.0",
+        "puppeteer": "2.1.0",
         "release-it": "^14.2.2",
         "rewire": "^5.0.0",
         "serve-static": "^1.14.1",
@@ -64,8 +65,10 @@
             "@babel/plugin-transform-modules-commonjs"
         ],
         "presets": [
-            "@babel/preset-typescript"
-        ]
+            "@babel/preset-typescript",
+            "babel-preset-minify"
+        ],
+        "comments": false
     },
     "publishConfig": {
         "registry": "https://registry.npmjs.org"

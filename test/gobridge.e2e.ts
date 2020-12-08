@@ -1,8 +1,5 @@
-import { Browser } from 'puppeteer/lib/cjs/puppeteer/common/Browser';
-import { Page } from 'puppeteer/lib/cjs/puppeteer/common/Page';
-
 import { WasmModule } from '../src/browser/gobridge';
-
+import { Browser, Page } from 'puppeteer';
 import 'expect-puppeteer';
 
 declare global {
@@ -106,7 +103,7 @@ describe('Browser environment', () => {
 
             // For strictly equal
             const valuesStrict = [undefined, null, false, 0, -0, '', NaN];
-            const expectStrict = [null, null, false, 0, -0, '', NaN];
+            const expectStrict = [null, null, false, 0, 0, '', NaN];
             const resStrict = [];
             for (let v of valuesStrict) {
                 resStrict.push(inst.bounce(v));
