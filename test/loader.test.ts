@@ -1,5 +1,6 @@
 import rewire from 'rewire';
 import * as path from 'path';
+import * as os from 'os';
 
 const INDEX_PATH = '../lib/loader/index.js';
 
@@ -86,11 +87,12 @@ describe('Webpack loader function unit tests', () => {
     });
 
     test('compileGo - Should build go file and return wasm', async (done) => {
-        expect.assertions(12);
+        expect.assertions(10);
+
         const resourcePath = '/goFilePath.go';
-        const outPath = '/goFilePath.wasm';
-        const rootContext = '/rootContext';
-        const goCache = `${rootContext}/.gocache`;
+        const tmpDir = os.tmpdir();
+        const hash = '0123456789abcdef';
+        const goCache = `${tmpDir}/goml-${hash}`;
         const envs = {
             GOROOT: FAKE_GOROOT,
             GOPATH: FAKE_GOROOT,
@@ -101,24 +103,27 @@ describe('Webpack loader function unit tests', () => {
         const getGoEnvsMock = jest
             .fn()
             .mockReturnValueOnce(Promise.resolve(envs));
+        const createHashMock = jest.fn().mockReturnValue(hash);
         const execFileMock = jest.fn().mockReturnValue(Promise.resolve());
         const readFileMock = jest
             .fn()
             .mockReturnValue(Promise.resolve(FAKE_WASM_BIN));
-        const unlinkMock = jest.fn().mockReturnValueOnce(Promise.resolve());
-        const rimrafMock = jest.fn().mockReturnValueOnce(() => {});
+        const rimrafMock = jest
+            .fn()
+            .mockImplementation((_, resolve: () => void) => {
+                resolve();
+            });
+        const mkdirMock = jest.fn().mockReturnValueOnce(Promise.resolve());
 
         const loaderRW = rewire(INDEX_PATH);
         loaderRW.__set__('getGoEnvs', getGoEnvsMock);
+        loaderRW.__set__('createHash', createHashMock);
         loaderRW.__set__('execFileAsync', execFileMock);
         loaderRW.__set__('readFileAsync', readFileMock);
-        loaderRW.__set__('unlinkAsync', unlinkMock);
         loaderRW.__get__('_rimraf').default = rimrafMock;
+        loaderRW.__set__('mkdirAsync', mkdirMock);
 
-        const res = await loaderRW.__get__('compileGo')(
-            resourcePath,
-            rootContext
-        );
+        const res = await loaderRW.__get__('compileGo')(resourcePath, true);
 
         expect(getGoEnvsMock.mock.calls.length).toBe(1);
 
@@ -127,34 +132,30 @@ describe('Webpack loader function unit tests', () => {
         expect(execFileMock.mock.calls[0][1]).toEqual([
             'build',
             '-o',
-            outPath,
-            resourcePath,
+            `${goCache}/module.wasm`,
+            path.basename(resourcePath),
         ]);
-        expect(execFileMock.mock.calls[0][2].env).toEqual({
-            ...envs,
-            GOCACHE: goCache,
-        });
 
         expect(readFileMock.mock.calls.length).toBe(1);
-        expect(readFileMock.mock.calls[0][0]).toBe(outPath);
+        expect(readFileMock.mock.calls[0][0]).toBe(`${goCache}/module.wasm`);
 
         expect(res).toBe(FAKE_WASM_BIN);
 
-        expect(unlinkMock.mock.calls.length).toBe(1);
-        expect(unlinkMock.mock.calls[0][0]).toBe(outPath);
-
-        expect(rimrafMock.mock.calls.length).toBe(1);
+        expect(rimrafMock.mock.calls.length).toBe(2);
         expect(rimrafMock.mock.calls[0][0]).toBe(goCache);
+        expect(rimrafMock.mock.calls[1][0]).toBe(goCache);
         done();
     });
 
     test('compileGo - Should ignore error when files to delete does not exist', async (done) => {
         expect.assertions(1);
         const loaderRW = rewire(INDEX_PATH);
-        loaderRW.__set__('getGoEnvs', () => Promise.resolve({}));
+        loaderRW.__set__('getGoEnvs', () =>
+            Promise.resolve({ GOROOT: 'goroot' })
+        );
         loaderRW.__set__('execFileAsync', () => Promise.resolve());
         loaderRW.__set__('readFileAsync', () => Promise.resolve(FAKE_WASM_BIN));
-        loaderRW.__set__('unlinkAsync', () => Promise.reject());
+        loaderRW.__set__('mkdirAsync', () => Promise.resolve());
         // TODO: Create a better solution if possible
         loaderRW.__get__('_rimraf').default = (_: any, cb: Function) =>
             cb(new Error());

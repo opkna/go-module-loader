@@ -2,26 +2,29 @@ import * as child_process from 'child_process';
 import * as path from 'path';
 import * as util from 'util';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as crypto from 'crypto';
 import rimraf from 'rimraf';
 import { loader } from 'webpack';
 
 let execAsync = util.promisify(child_process.exec);
 let execFileAsync = util.promisify(child_process.execFile);
 let readFileAsync = util.promisify(fs.readFile);
-let unlinkAsync = util.promisify(fs.unlink);
+let mkdirAsync = util.promisify(fs.mkdir);
 
-const goBinPath = (goRoot: string) => `${goRoot}/bin/go`;
-
-async function createBridgeCode(filename: string) {
-    return (
-        await readFileAsync(
-            path.resolve(__dirname, '..', 'browser', 'gobridge.js')
-        )
-    )
-        .toString()
-        .replace(/\$WASM_FILENAME/, filename);
+function goBinPath(goRoot: string) {
+    return path.resolve(goRoot, 'bin', 'go');
+}
+function createCachePath(hash: string) {
+    return path.resolve(os.tmpdir(), `goml-${hash}`);
+}
+function createHash(seed: string) {
+    return crypto.createHash('md5').update(seed).digest('hex');
 }
 
+/**
+ * Finds and returns needed GO environment variables
+ */
 async function getGoEnvs() {
     let GOROOT = process.env.GOROOT;
     if (!GOROOT) {
@@ -53,18 +56,45 @@ async function getGoEnvs() {
     };
 }
 
-async function compileGo(goFilePath: string, rootContext: string) {
-    const outFilePath = goFilePath.replace(/.go$/, '.wasm');
-    const goCachePath = path.resolve(rootContext, '.gocache');
+/**
+ * Will compile a GO file or module and return the wasm binary
+ *
+ * @param goFilePath Path to `.go` or `.mod` file.
+ * @param clearCache If true, will clear cache before and after compilation
+ */
+async function compileGo(goFilePath: string, clearCache: boolean) {
+    // Create hash from file path
+    const hash = createHash(goFilePath);
+
+    // Use hash to create tmp folder, so the same resource get's the same cache folder every compile
+    const goCachePath = createCachePath(hash);
 
     try {
+        // Folder where GO source is located
+        const srcDir = path.dirname(goFilePath);
+
+        // Get filename of GO source
+        const inputFile = path.basename(goFilePath);
+
+        if (clearCache) {
+            // Removes cache if it exist, ignore error if does not exist
+            await new Promise((resolve) => {
+                rimraf(goCachePath, resolve);
+            });
+        }
+
+        // Create cache directory
+        await mkdirAsync(goCachePath, { recursive: true });
+
         // Get all go related env vars
         const goEnvs = await getGoEnvs();
 
         // Compile to wasm
+        const outFilePath = path.resolve(goCachePath, 'module.wasm');
         const bin = goBinPath(goEnvs.GOROOT);
-        const args = ['build', '-o', outFilePath, goFilePath];
-        const opts = {
+        const args = ['build', '-o', outFilePath, inputFile];
+        const opts: child_process.ExecFileOptions = {
+            cwd: srcDir,
             env: {
                 ...goEnvs,
                 GOCACHE: goCachePath,
@@ -75,9 +105,10 @@ async function compileGo(goFilePath: string, rootContext: string) {
         // Read and return the compiled wasm binary
         return await readFileAsync(outFilePath);
     } finally {
-        // Remove compiled binary and GO cache directory. Ignore any error if the files are not there anyway
-        unlinkAsync(outFilePath).catch(() => {});
-        rimraf(goCachePath, () => {});
+        if (clearCache) {
+            // Remove compiled binary and GO cache directory. Ignore any error if the files are not there anyway
+            rimraf(goCachePath, () => {});
+        }
     }
 }
 
@@ -87,8 +118,15 @@ async function getJsModuleCode(emittedWasmPath: string) {
         path.resolve(__dirname, '..', 'browser', 'wasm_exec.js')
     );
 
-    // Create and return resulting code
-    const bridgeCode = await createBridgeCode(emittedWasmPath);
+    // Get bridge code and set set the emittedWasmPath as the file to fetch
+    const bridgeCode = (
+        await readFileAsync(
+            path.resolve(__dirname, '..', 'browser', 'gobridge.js')
+        )
+    )
+        .toString()
+        .replace(/\$WASM_FILENAME/, emittedWasmPath);
+
     // Combine and return
     return `${glueCode}${bridgeCode}`;
 }
@@ -100,7 +138,7 @@ export default async function (this: loader.LoaderContext) {
 
     try {
         // Compile to wasm
-        const wasmFile = await compileGo(this.resourcePath, this.rootContext);
+        const wasmFile = await compileGo(this.resourcePath, true);
 
         // Emit file to webpack
         const emittedWasmPath =

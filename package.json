@@ -65,8 +65,7 @@
             "@babel/plugin-transform-modules-commonjs"
         ],
         "presets": [
-            "@babel/preset-typescript",
-            "babel-preset-minify"
+            "@babel/preset-typescript"
         ],
         "comments": false
     },

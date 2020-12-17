@@ -11,7 +11,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.go$/,
+                test: /(\.go|\.mod)$/,
                 use: path.resolve(__dirname, '../..'),
             },
         ],

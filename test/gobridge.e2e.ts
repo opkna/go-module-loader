@@ -16,7 +16,7 @@ declare type Instance1 = {
 const timeout = 5000;
 const pupBrowser = (global as any).__BROWSER__ as Browser;
 
-describe('Browser environment', () => {
+describe('Testing wasmbridge integration', () => {
     let page: Page;
     beforeAll(async () => {
         page = await pupBrowser.newPage();
@@ -28,13 +28,11 @@ describe('Browser environment', () => {
         const res = await page.evaluate(async () => {
             const mod = window.__test_go[0];
             const inst: Instance1 = await mod.instantiate();
-
             const values = [true, false, 0, 2, 1.3, '', 'text1'];
             const res = [];
             for (let v of values) {
                 res.push(inst.bounce(v));
             }
-
             return {
                 original: values,
                 converted: res,
