@@ -18,7 +18,7 @@ yarn add -D go-module-loader
 
 > Note: `go` also have to be installed. And either have `go` in `PATH`, or have `GOROOT` set.
 
-## Usage (with wasmbridge)
+## Usage (with jsbridge)
 
 **webpack.config.js**
 
@@ -42,12 +42,12 @@ module.exports = {
 package main
 
 import (
-    "github.com/opkna/wasmbridge"
+    "github.com/opkna/jsbridge"
 )
 
 
 func main() {
-    wasmbridge.ExportFunc("add", add, false)
+    jsbridge.ExportFunc("add", add, false)
     select {}
 }
 
