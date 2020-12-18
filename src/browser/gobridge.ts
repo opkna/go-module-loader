@@ -1,6 +1,6 @@
 declare global {
     interface Window {
-        __wasmbridge: {
+        __jsbridge: {
             [key: string]: {
                 [key: string]: Function;
             };
@@ -42,7 +42,7 @@ export class WasmInstance {
     ) {
         this._wasmModule = module;
         this._uniqId = generateId();
-        window.__wasmbridge[this._uniqId] = {};
+        window.__jsbridge[this._uniqId] = {};
     }
 
     private async _init() {
@@ -106,7 +106,7 @@ export class WasmModule {
 
                 // @ts-ignore
                 const uniqId = inst._uniqId;
-                const func = window.__wasmbridge[uniqId][key];
+                const func = window.__jsbridge[uniqId][key];
                 if (typeof func !== 'function') {
                     // wasm function does not exist
                     return Reflect.get(target, key, receiver);
@@ -141,8 +141,8 @@ export class WasmModule {
     }
 }
 
-if (!window.__wasmbridge) {
-    window.__wasmbridge = {};
+if (!window.__jsbridge) {
+    window.__jsbridge = {};
 }
 
 export default new WasmModule();
