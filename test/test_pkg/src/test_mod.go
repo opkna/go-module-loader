@@ -3,12 +3,12 @@
 package main
 
 import (
-	"github.com/opkna/wasmbridge"
+	"github.com/opkna/jsbridge"
 )
 
 func main() {
-	wasmbridge.ExportFunc("bounce", bounce, false)
-	wasmbridge.ExportFunc("bounceClamped", bounceClamped, true) // Will return []byte to Uint8ClampedArray
+	jsbridge.ExportFunc("bounce", bounce, false)
+	jsbridge.ExportFunc("bounceClamped", bounceClamped, true) // Will return []byte to Uint8ClampedArray
 	select {}
 }
 
