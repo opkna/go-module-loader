@@ -1,3 +1,3 @@
-// import testFile from './test_mod.go';
-import testMod from './test_mod.go';
-window.__test_go = [testMod];
+import testGlue from './test_glue.go';
+import testJsbridge from './test_jsbridge.go';
+window.__test_go = [testGlue, testJsbridge];

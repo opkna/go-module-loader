@@ -28,7 +28,7 @@ const defaultOpts: Required<InstantiateOptions> = {
 };
 
 function generateId() {
-    return (1 + Math.random() * 0x1000000).toString(36);
+    return Math.floor(1 + Math.random() * 0x1000000).toString(36);
 }
 
 export class WasmInstance {

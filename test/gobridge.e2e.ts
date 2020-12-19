@@ -1,17 +1,8 @@
-import { WasmModule } from '../src/browser/gobridge';
 import { Browser, Page } from 'puppeteer';
 import 'expect-puppeteer';
 
-declare global {
-    interface Window {
-        __test_go: WasmModule[];
-    }
-}
-
-declare type Instance1 = {
-    bounce: <T>(arg: T) => T;
-    bounceClamped: (array: Uint8ClampedArray) => Uint8ClampedArray;
-};
+import testPkg, {TestJsBridge} from './test_pkg/meta';
+import {WasmModule} from '../src/browser/gobridge';
 
 const timeout = 5000;
 const pupBrowser = (global as any).__BROWSER__ as Browser;
@@ -25,9 +16,9 @@ describe('Testing wasmbridge integration', () => {
     }, timeout);
 
     test('Convert simple primitives', async (done) => {
-        const res = await page.evaluate(async () => {
-            const mod = window.__test_go[0];
-            const inst: Instance1 = await mod.instantiate();
+        const res = await page.evaluate(async (globalName: string, idx: number) => {
+            const mod = window[globalName][idx] as WasmModule;
+            const inst = await mod.instantiate<TestJsBridge>();
             const values = [true, false, 0, 2, 1.3, '', 'text1'];
             const res = [];
             for (let v of values) {
@@ -37,7 +28,7 @@ describe('Testing wasmbridge integration', () => {
                 original: values,
                 converted: res,
             };
-        });
+        }, testPkg.globalArrayName, testPkg.indicies.test_jsbridge);
         for (let i = 0; i < res.original.length; i++) {
             expect(res.converted[i]).toBe(res.original[i]);
         }
@@ -45,9 +36,9 @@ describe('Testing wasmbridge integration', () => {
     });
 
     test('Convert objects', async (done) => {
-        const res = await page.evaluate(async () => {
-            const mod = window.__test_go[0];
-            const inst: Instance1 = await mod.instantiate();
+        const res = await page.evaluate(async (globalName: string, idx: number) => {
+            const mod = window[globalName][idx] as WasmModule;
+            const inst = await mod.instantiate<TestJsBridge>();
 
             const values = [
                 [true, 2, 'text2'],
@@ -63,16 +54,16 @@ describe('Testing wasmbridge integration', () => {
                 original: values,
                 converted: res,
             };
-        });
+        }, testPkg.globalArrayName, testPkg.indicies.test_jsbridge);
         for (let i = 0; i < res.original.length; i++) {
             expect(res.converted[i]).toEqual(res.original[i]);
         }
         done();
     });
     test('Convert uint arrays', async (done) => {
-        const res = await page.evaluate(async () => {
-            const mod = window.__test_go[0];
-            const inst: Instance1 = await mod.instantiate();
+        const res = await page.evaluate(async (globalName: string, idx: number) => {
+            const mod = window[globalName][idx] as WasmModule;
+            const inst = await mod.instantiate<TestJsBridge>();
 
             const values = [
                 new Uint8Array([0, 1, 2, 3, 4]),
@@ -87,7 +78,7 @@ describe('Testing wasmbridge integration', () => {
                 original: values,
                 converted: res,
             };
-        });
+        }, testPkg.globalArrayName, testPkg.indicies.test_jsbridge);
         for (let i = 0; i < res.original.length; i++) {
             expect(res.converted[i]).toEqual(res.original[i]);
         }
@@ -95,9 +86,9 @@ describe('Testing wasmbridge integration', () => {
     });
 
     test('Convert falsy values', async (done) => {
-        const res = await page.evaluate(async () => {
-            const mod = window.__test_go[0];
-            const inst: Instance1 = await mod.instantiate();
+        const res = await page.evaluate(async (globalName: string, idx: number) => {
+            const mod = window[globalName][idx] as WasmModule;
+            const inst = await mod.instantiate<TestJsBridge>();
 
             // For strictly equal
             const valuesStrict = [undefined, null, false, 0, -0, '', NaN];
@@ -120,7 +111,7 @@ describe('Testing wasmbridge integration', () => {
                 expectedEqual: valuesEqual,
                 convertedEqual: resEqual,
             };
-        });
+        }, testPkg.globalArrayName, testPkg.indicies.test_jsbridge);
         for (let i = 0; i < res.expectedStrict.length; i++) {
             expect(res.convertedStricy[i]).toBe(res.expectedStrict[i]);
         }
